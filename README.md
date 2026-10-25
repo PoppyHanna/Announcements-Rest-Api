@@ -32,10 +32,18 @@ REST API для дошки оголошень з JWT-автентифікаці�
 npm install
 ```
 
-2. Створіть файл конфігурації:
+2. Створіть файл конфігурації .env на основі .env.example:
 
-```bash
+**macOS / Linux**
+
+```bash :
 cp .env.example .env
+```
+
+**Windows PowerShell**
+
+```powershell:
+Copy-Item .env.example .env
 ```
 
 3. Налаштуйте `.env`:
@@ -51,7 +59,13 @@ JWT_SECRET=your-secret-key-at-least-256-bits-long
 npm run prisma:migrate
 ```
 
-5. Запустіть проект:
+5. Згенеруйте Prisma Client:
+
+```bash
+npm run prisma:generate
+```
+
+6. Запустіть проект:
 
 ```bash
 npm run dev
@@ -66,7 +80,7 @@ npm run dev
 | POST  | `/auth/register` | Реєстрація користувача        | Ні   |
 | POST  | `/auth/login`    | Вхід користувача              | Ні   |
 | POST  | `/auth/refresh`  | Оновлення токенів             | Ні   |
-| POST  | `/auth/logout`   | Вихід                         | Ні   |
+| POST  | `/auth/logout`   | Вихід                         | Так  |
 | GET   | `/auth/me`       | Профіль поточного користувача | Так  |
 
 ### Оголошення
@@ -78,6 +92,13 @@ npm run dev
 | POST   | `/announcements`     | Створення оголошення                      | Так  |
 | PATCH  | `/announcements/:id` | Часткове оновлення (власне)               | Так  |
 | DELETE | `/announcements/:id` | Видалення (власне)                        | Так  |
+
+### Авторизація
+Для доступу до захищених маршрутів необхідно передати JWT access token у заголовку HTTP-запиту:
+
+Authorization: Bearer <accessToken>
+
+Access token дійсний 15 хвилин, refresh token — 7 днів. Оновлення токенів відбувається через /auth/refresh.
 
 ## Параметри запитів
 
@@ -109,10 +130,21 @@ npm run dev
 
 PATCH використовує ті ж правила валідації, але всі поля опціональні (хоча б одне має бути присутнє).
 
+## Приклад створення оголошення:
+
+```json
+{
+  "title": "iPhone 13",
+  "description": "Смартфон у хорошому стані",
+  "price": 420,
+  "category": "sale"
+}
+```
+
 ## Структура проекту
 
 ```
-boilerplate/
+Announcements-Rest-Api/
 ├── prisma/
 │   ├── schema.prisma
 │   ├── client.ts
@@ -130,26 +162,30 @@ boilerplate/
 │   ├── validators/
 │   │   ├── auth.validator.ts
 │   │   └── announcements.validator.ts
+│   ├── auth.openapi.ts
+│   ├── announcements.openapi.ts
 │   └── openapi.ts
 ├── app.ts
 ├── .env.example
 ├── .env
+├── .gitignore
 ├── package.json
+├── package-lock.json
 ├── tsconfig.json
 ├── prisma.config.ts
 └── README.md
 ```
+Файл .env містить конфіденційні налаштування та не додається до репозиторію. Для створення локальної конфігурації використовується .env.example.
 
-## Бойлерплейт
+## Конфігурація проєкту
 
-Мінімальний стартовий набір:
-
-- `package.json` з усіма залежностями
-- `tsconfig.json` з налаштуваннями TypeScript
-- `src/openapi.ts` з ініціалізованим registry та `bearerAuth`
-- `prisma/client.ts` з ініціалізованим Prisma Client (PostgreSQL через `@prisma/adapter-pg`)
-- `prisma.config.ts` з конфігурацією Prisma
-- `.env.example` з шаблоном змінних середовища
+- package.json — залежності та npm-скрипти.
+- tsconfig.json — налаштування TypeScript.
+- src/openapi.ts — реєстр OpenAPI та схема bearerAuth.
+- src/auth.openapi.ts, src/announcements.openapi.ts — документація маршрутів.
+- prisma/client.ts — ініціалізація Prisma Client через PostgreSQL-адаптер.
+- prisma.config.ts — конфігурація Prisma.
+- .env.example — шаблон змінних середовища.
 
 ## Доступні скрипти
 
@@ -163,6 +199,8 @@ boilerplate/
 ## Документація API
 
 Swagger UI доступний за адресою: http://localhost:3000/api-docs
+
+Документація містить маршрути автентифікації та оголошень, схеми запитів і відповідей, а також підтримує авторизацію через Bearer token.
 
 ## Prisma schema
 
