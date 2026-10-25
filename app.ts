@@ -3,12 +3,17 @@ import type { NextFunction, Request, Response } from "express";
 import swaggerUi from "swagger-ui-express";
 import cookieParser from "cookie-parser";
 
+import authRoutes from "./src/routes/auth.routes.ts";
+
 import { generateOpenApiDocument } from "./src/openapi.ts";
 
 const app = express();
 
 app.use(express.json());
 app.use(cookieParser());
+
+app.use("/auth", authRoutes);
+
 const openApiDocument = generateOpenApiDocument();
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
 
