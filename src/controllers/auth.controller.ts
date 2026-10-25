@@ -70,19 +70,16 @@ export const register = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
   const { username, password } = req.body;
 
-  // Шукаємо користувача за username
   const user = await prisma.user.findUnique({
     where: { username },
   });
 
-  // Якщо користувача немає — помилка 401
   if (!user) {
     return res.status(401).json({
       message: "Invalid credentials",
     });
   }
 
-  // Перевіряємо пароль
   const isPasswordValid = await bcrypt.compare(
     password,
     user.password,
@@ -100,7 +97,6 @@ export const login = async (req: Request, res: Response) => {
     throw new Error("JWT_SECRET is not configured");
   }
 
-  // Генеруємо нові токени
   const accessToken = jwt.sign(
     { sub: String(user.id) },
     secret,
@@ -113,8 +109,6 @@ export const login = async (req: Request, res: Response) => {
     { expiresIn: "7d", jwtid: crypto.randomUUID() },
   );
 
-  // Видаляємо попередні refresh-токени
-  // і зберігаємо новий
   await prisma.$transaction([
     prisma.refreshToken.deleteMany({
       where: { userId: user.id },
@@ -127,7 +121,6 @@ export const login = async (req: Request, res: Response) => {
     }),
   ]);
 
-  // Не повертаємо пароль користувача
   const { password: _password, ...safeUser } = user;
 
   return res.status(200).json({
@@ -147,7 +140,6 @@ export const refresh = async (req: Request, res: Response) => {
     throw new Error("JWT_SECRET is not configured");
   }
 
-  // Перевіряємо підпис і термін дії токена
   let payload: jwt.JwtPayload;
 
   try {
@@ -166,7 +158,6 @@ export const refresh = async (req: Request, res: Response) => {
     });
   }
 
-  // Перевіряємо, чи токен є в базі
   const storedToken = await prisma.refreshToken.findUnique({
     where: { token: refreshToken },
   });
@@ -177,7 +168,6 @@ export const refresh = async (req: Request, res: Response) => {
     });
   }
 
-  // Генеруємо нову пару токенів
   const accessToken = jwt.sign(
     { sub: payload.sub },
     secret,
@@ -190,7 +180,6 @@ export const refresh = async (req: Request, res: Response) => {
     { expiresIn: "7d", jwtid: crypto.randomUUID() },
   );
 
-  // Замінюємо використаний refresh token
   await prisma.refreshToken.update({
     where: { id: storedToken.id },
     data: { token: newRefreshToken },
@@ -227,7 +216,6 @@ export const getMe = async (req: Request, res: Response) => {
 };
 
 //Logout
-
 export const logout = async (req: Request, res: Response) => {
   const userId = Number(req.user!.sub);
 

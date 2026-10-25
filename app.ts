@@ -3,7 +3,11 @@ import type { NextFunction, Request, Response } from "express";
 import swaggerUi from "swagger-ui-express";
 import cookieParser from "cookie-parser";
 
+import "./src/auth.openapi.ts";
+import "./src/announcements.openapi.ts";
+
 import authRoutes from "./src/routes/auth.routes.ts";
+import announcementsRoutes from "./src/routes/announcements.routes.ts";
 
 import { generateOpenApiDocument } from "./src/openapi.ts";
 
@@ -13,6 +17,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use("/auth", authRoutes);
+app.use("/announcements", announcementsRoutes);
 
 const openApiDocument = generateOpenApiDocument();
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));

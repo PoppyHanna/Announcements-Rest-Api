@@ -21,9 +21,10 @@ export function generateOpenApiDocument() {
   return generator.generateDocument({
     openapi: "3.0.0",
     info: {
-      title: "Your API",
+      title: "Announcements REST API",
       version: "1.0.0",
-      description: "REST API for your project",
+      description:
+        "REST API for an announcements board with JWT authentication, CRUD operations, search, sorting and pagination.",
     },
     servers: [{ url: "http://localhost:3000" }],
   });

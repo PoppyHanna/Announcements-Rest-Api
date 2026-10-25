@@ -1,7 +1,6 @@
-
 import { z } from "zod";
 
-// Реєстрація нового користувача
+//Register schema
 export const registerSchema = z.object({
   username: z.string().min(3).max(30),
   email: z.email(),
@@ -9,13 +8,13 @@ export const registerSchema = z.object({
   name: z.string().min(2),
 });
 
-// Вхід користувача
+// Login schema
 export const loginSchema = z.object({
   username: z.string().min(1),
   password: z.string().min(1),
 });
 
-// Оновлення токенів
+// Refresh token schema
 export const refreshSchema = z.object({
   refreshToken: z.string().min(1),
 });
