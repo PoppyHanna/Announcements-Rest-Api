@@ -25,7 +25,8 @@ export const authenticate: RequestHandler = (req, res, next) => {
     if (
       typeof payload === "string" ||
       !payload.sub ||
-      !/^\d+$/.test(payload.sub)
+      !/^\d+$/.test(payload.sub)||
+      payload.type !== "access"
     ) {
       res.status(401).json({
         message: "Unauthorized",

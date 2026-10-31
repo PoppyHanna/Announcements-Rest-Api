@@ -3,6 +3,7 @@ import type { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import prisma from "../../prisma/client.ts";
+import logger from "../logger.ts"; 
 
 //Register
 export const register = async (req: Request, res: Response) => {
@@ -39,15 +40,15 @@ export const register = async (req: Request, res: Response) => {
   }
 
   const accessToken = jwt.sign(
-    { sub: String(user.id) },
+    { sub: String(user.id),  type: "access"  },
     secret,
     { expiresIn: "15m" },
   );
 
   const refreshToken = jwt.sign(
-    { sub: String(user.id) },
+    { sub: String(user.id), type: "refresh" },
     secret,
-    { expiresIn: "7d" },
+    { expiresIn: "7d", jwtid: crypto.randomUUID() },
   );
 
   await prisma.refreshToken.create({
@@ -58,6 +59,11 @@ export const register = async (req: Request, res: Response) => {
   });
 
   const { password: _password, ...safeUser } = user;
+
+  logger.info(
+  { userId: user.id },
+  "User registered successfully",
+);
 
   return res.status(201).json({
     user: safeUser,
@@ -98,13 +104,13 @@ export const login = async (req: Request, res: Response) => {
   }
 
   const accessToken = jwt.sign(
-    { sub: String(user.id) },
+    { sub: String(user.id), type: "access" },
     secret,
     { expiresIn: "15m" },
   );
 
   const refreshToken = jwt.sign(
-    { sub: String(user.id) },
+    { sub: String(user.id), type: "refresh" },
     secret,
     { expiresIn: "7d", jwtid: crypto.randomUUID() },
   );
@@ -122,6 +128,11 @@ export const login = async (req: Request, res: Response) => {
   ]);
 
   const { password: _password, ...safeUser } = user;
+
+  logger.info(
+  { userId: user.id },
+  "User logged in successfully",
+);
 
   return res.status(200).json({
     user: safeUser,
@@ -145,7 +156,7 @@ export const refresh = async (req: Request, res: Response) => {
   try {
     const decoded = jwt.verify(refreshToken, secret);
 
-    if (typeof decoded === "string" || !decoded.sub) {
+    if (typeof decoded === "string" || !decoded.sub || decoded.type !== "refresh") {
       return res.status(401).json({
         message: "Invalid refresh token",
       });
@@ -169,13 +180,13 @@ export const refresh = async (req: Request, res: Response) => {
   }
 
   const accessToken = jwt.sign(
-    { sub: payload.sub },
+    { sub: payload.sub, type: "access" },
     secret,
     { expiresIn: "15m" },
   );
 
   const newRefreshToken = jwt.sign(
-    { sub: payload.sub },
+    { sub: payload.sub, type: "refresh" },
     secret,
     { expiresIn: "7d", jwtid: crypto.randomUUID() },
   );

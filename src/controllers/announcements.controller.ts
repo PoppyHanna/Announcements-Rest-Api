@@ -1,5 +1,17 @@
 import type { Request, Response } from "express";
 import prisma from "../../prisma/client.ts";
+import logger from "../logger.ts";
+import { uploadImage } from "../services/uploadImage.ts";
+import { unlink } from "node:fs/promises";
+
+const userSelect = {
+  id: true,
+  username: true,
+  email: true,
+  name: true,
+  createdAt: true,
+} as const;
+
 
 //Create Announcement
 export const createAnnouncement = async (
@@ -10,6 +22,12 @@ export const createAnnouncement = async (
 
   const userId = Number(req.user!.sub);
 
+    let imageUrl: string | undefined;
+
+  if (req.file) {
+    imageUrl = await uploadImage(req.file.path);
+  }
+
   const announcement = await prisma.announcement.create({
     data: {
       title,
@@ -17,17 +35,24 @@ export const createAnnouncement = async (
       price,
       category,
       userId,
+      imageUrl,
     },
     include: {
       user: {
-        select: {
-          id: true,
-          username: true,
-          name: true,
-        },
+        select: userSelect,
       },
     },
   });
+
+  
+logger.info(
+  {
+    announcementId: announcement.id,
+    userId,
+    hasImage: Boolean(imageUrl),
+  },
+  "Announcement created successfully",
+);
 
   return res.status(201).json(announcement);
 };
@@ -65,13 +90,7 @@ export const getAnnouncements = async (
       take: perPage,
       include: {
         user: {
-          select: {
-            id: true,
-            username: true,
-            email: true,
-            name: true,
-            createdAt: true,
-          },
+          select: userSelect,
         },
       },
     }),
@@ -102,13 +121,7 @@ export const getAnnouncementById = async (
     where: { id },
     include: {
       user: {
-        select: {
-          id: true,
-          username: true,
-          email: true,
-          name: true,
-          createdAt: true,
-        },
+        select: userSelect,
       },
     },
   });
@@ -123,51 +136,67 @@ export const getAnnouncementById = async (
 };
 
 //Update announcement by ID
+
 export const updateAnnouncement = async (
   req: Request,
   res: Response,
 ) => {
-  const { id } = res.locals.validatedParams as {
-    id: number;
-  };
-
+  const { id } = res.locals.validatedParams as { id: number };
   const userId = Number(req.user!.sub);
 
-  const existingAnnouncement =
-    await prisma.announcement.findUnique({
+  try {
+    const existingAnnouncement = await prisma.announcement.findUnique({
       where: { id },
     });
 
-  if (!existingAnnouncement) {
-    return res.status(404).json({
-      message: "Announcement not found",
-    });
-  }
+    if (!existingAnnouncement) {
+      return res.status(404).json({
+        message: "Announcement not found",
+      });
+    }
 
-  if (existingAnnouncement.userId !== userId) {
-    return res.status(403).json({
-      message: "Access denied",
-    });
-  }
+    if (existingAnnouncement.userId !== userId) {
+      return res.status(403).json({
+        message: "Access denied",
+      });
+    }
 
-  const announcement = await prisma.announcement.update({
-    where: { id },
-    data: req.body,
-    include: {
-      user: {
-        select: {
-          id: true,
-          username: true,
-          email: true,
-          name: true,
-          createdAt: true,
+    let imageUrl: string | undefined;
+
+    if (req.file) {
+      imageUrl = await uploadImage(req.file.path);
+    }
+
+    const announcement = await prisma.announcement.update({
+      where: { id },
+      data: {
+        ...req.body,
+        ...(imageUrl ? { imageUrl } : {}),
+      },
+      include: {
+        user: {
+          select: userSelect,
         },
       },
-    },
-  });
+    });
 
-  return res.status(200).json(announcement);
+    logger.info(
+      {
+        announcementId: announcement.id,
+        userId,
+        hasNewImage: Boolean(imageUrl),
+      },
+      "Announcement updated successfully",
+    );
+
+    return res.status(200).json(announcement);
+  } finally {
+    if (req.file) {
+      await unlink(req.file.path).catch(() => {});
+    }
+  }
 };
+
 
 //Delete announcement by ID
 export const deleteAnnouncement = async (

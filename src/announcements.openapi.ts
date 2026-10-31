@@ -18,6 +18,7 @@ const userSchema = z.object({
 const announcementSchema = createAnnouncementSchema.extend({
   id: z.number(),
   userId: z.number(),
+  imageUrl: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
   user: userSchema,
@@ -26,6 +27,24 @@ const announcementSchema = createAnnouncementSchema.extend({
 const errorSchema = z.object({
   message: z.string(),
 });
+
+const imageFieldSchema = z.string().openapi({
+  type: "string",
+  format: "binary",
+  description: "Optional image file (JPEG, PNG or WEBP, max 5 MB)",
+});
+
+const createAnnouncementMultipartSchema = z.object({
+  title: z.string().min(5).max(50),
+  description: z.string().min(10),
+  price: z.string().regex(/^\d+(\.\d+)?$/),
+  category: z.enum(["sale", "service", "job", "other"]),
+  image: imageFieldSchema.optional(),
+});
+
+const updateAnnouncementMultipartSchema =
+  createAnnouncementMultipartSchema.partial();
+
 
 // GET /announcements
 registry.registerPath({
@@ -98,15 +117,20 @@ registry.registerPath({
   tags: ["Announcements"],
   summary: "Create a new announcement",
   security: [{ bearerAuth: [] }],
-  request: {
-    body: {
-      content: {
-        "application/json": {
-          schema: createAnnouncementSchema,
-        },
+  
+request: {
+  body: {
+    content: {
+      "application/json": {
+        schema: createAnnouncementSchema,
+      },
+      "multipart/form-data": {
+        schema: createAnnouncementMultipartSchema,
       },
     },
   },
+},
+
   responses: {
     201: {
       description: "Announcement created",
@@ -132,16 +156,21 @@ registry.registerPath({
   tags: ["Announcements"],
   summary: "Update own announcement",
   security: [{ bearerAuth: [] }],
-  request: {
-    params: announcementParamsSchema,
-    body: {
-      content: {
-        "application/json": {
-          schema: updateAnnouncementSchema,
-        },
+  
+request: {
+  params: announcementParamsSchema,
+  body: {
+    content: {
+      "application/json": {
+        schema: updateAnnouncementSchema,
+      },
+      "multipart/form-data": {
+        schema: updateAnnouncementMultipartSchema,
       },
     },
   },
+},
+
   responses: {
     200: {
       description: "Announcement updated",
